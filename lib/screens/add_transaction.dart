@@ -17,7 +17,7 @@ class AddTransactionScreen extends StatefulWidget {
 
 class _AddTransactionScreenState extends State<AddTransactionScreen>
     with SingleTickerProviderStateMixin {
-  final _noteCtrl = TextEditingController(text: 'Diario');
+  final _noteCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   late TabController _tabs;
   String _categoryId = CategoryDef.ingresos.id;
@@ -35,6 +35,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
       vsync: this,
       initialIndex: widget.initialTab.clamp(0, 1),
     );
+    if (widget.initialTab == 0) {
+      _noteCtrl.text = 'Diario';
+      _categoryId = CategoryDef.ingresos.id;
+    } else {
+      _categoryId = CategoryDef.comida.id;
+    }
     _tabs.addListener(_onTabChanged);
   }
 

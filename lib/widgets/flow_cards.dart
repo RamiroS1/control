@@ -5,23 +5,22 @@ import '../models.dart';
 import '../services.dart';
 
 class DailySummaryCard extends StatelessWidget {
-  final double dailyBudget;
-  final double spentToday;
+  final MonthFlowSnapshot flow;
   final double incomeToday;
   final double balanceTotal;
 
   const DailySummaryCard({
     super.key,
-    required this.dailyBudget,
-    required this.spentToday,
+    required this.flow,
     required this.incomeToday,
     required this.balanceTotal,
   });
 
-  double get remainingToday => dailyBudget - spentToday;
-
   @override
   Widget build(BuildContext context) {
+    final dailyBudget = flow.dailyBudget;
+    final spentToday = flow.spentToday;
+    final monthLeft = flow.monthAvailable;
     final pct = dailyBudget > 0 ? (spentToday / dailyBudget).clamp(0.0, 1.0) : 0.0;
 
     return Glass(
@@ -51,7 +50,7 @@ class DailySummaryCard extends StatelessWidget {
                 child: _Stat(
                   label: 'Puedes gastar hoy',
                   value: moneyFull(dailyBudget),
-                  color: T.volt,
+                  color: dailyBudget >= 0 ? T.volt : T.clay,
                 ),
               ),
               Expanded(
@@ -68,9 +67,9 @@ class DailySummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _Stat(
-                  label: 'Te quedan hoy',
-                  value: moneyFull(remainingToday),
-                  color: remainingToday >= 0 ? T.go : T.clay,
+                  label: 'Te queda del mes',
+                  value: moneyFull(monthLeft),
+                  color: monthLeft >= 0 ? T.go : T.clay,
                 ),
               ),
               Expanded(
@@ -97,15 +96,23 @@ class DailySummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '${(pct * 100).toStringAsFixed(0)}% del presupuesto diario usado',
+              '${(pct * 100).toStringAsFixed(0)}% del tope diario usado',
               style: const TextStyle(fontSize: 11, color: T.ink45),
             ),
-          ] else
+          ] else if (!flow.usesBudget && flow.income <= 0)
             const Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text(
-                'Define tu presupuesto mensual para ver cuanto puedes gastar por dia.',
+                'Registra tus entradas o define un presupuesto mensual.',
                 style: TextStyle(fontSize: 12, color: T.ink45),
+              ),
+            )
+          else if (!flow.usesBudget)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Calculado con tus ingresos del mes (sin presupuesto definido).',
+                style: const TextStyle(fontSize: 12, color: T.ink45),
               ),
             ),
         ],

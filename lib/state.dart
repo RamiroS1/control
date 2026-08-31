@@ -151,9 +151,14 @@ class AppState extends ChangeNotifier {
   }
 
   double budgetRemaining() {
-    final plan = currentBudget();
-    final total = Finance.totalBudgeted(plan);
-    return total - monthExpenses();
+    final flow = Finance.monthFlow(
+      plan: currentBudget(),
+      txs: transactions,
+      year: focusMonth.year,
+      month: focusMonth.month,
+      today: DateTime.now(),
+    );
+    return flow.monthAvailable;
   }
 }
 

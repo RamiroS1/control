@@ -16,8 +16,13 @@ class BudgetDetailScreen extends StatelessWidget {
     final now = state.focusMonth;
     final plan = state.currentBudget();
     final spent = state.monthExpenses();
-    final total = Finance.totalBudgeted(plan);
-    final remaining = total - spent;
+    final flow = Finance.monthFlow(
+      plan: plan,
+      txs: state.transactions,
+      year: now.year,
+      month: now.month,
+      today: DateTime.now(),
+    );
     final byCat = Finance.byCategory(
         state.transactions, now.year, now.month);
 
@@ -50,13 +55,13 @@ class BudgetDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           BudgetCard(
-            label: 'Presupuesto ${now.year}',
+            label: flow.usesBudget ? 'Presupuesto ${now.year}' : 'Flujo ${now.year}',
             month: _monthName(now.month),
-            remaining: remaining,
-            total: total,
-            daysLeft: Finance.daysRemaining(DateTime.now()),
-            daily: Finance.dailyAllowance(
-                remaining, Finance.daysRemaining(DateTime.now())),
+            remaining: flow.monthAvailable,
+            total: flow.referenceTotal,
+            daysLeft: flow.daysLeft,
+            daily: flow.dailyBudget,
+            referenceLabel: flow.referenceLabel,
           ),
           const SizedBox(height: 16),
           Glass(

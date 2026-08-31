@@ -133,6 +133,67 @@ class Finance {
 
   static double workingBalance(List<Account> accounts) =>
       accounts.fold(0, (s, a) => s + a.balance);
+
+  /// Resumen mensual: usa presupuesto si existe; si no, ingresos − gastos.
+  static MonthFlowSnapshot monthFlow({
+    required BudgetPlan plan,
+    required List<Transaction> txs,
+    required int year,
+    required int month,
+    required DateTime today,
+  }) {
+    final budget = totalBudgeted(plan);
+    final monthIncome = income(txs, year, month);
+    final monthExpenses = expenses(txs, year, month);
+    final spentToday = expensesOnDay(txs, today);
+    final daysLeft = daysRemaining(today);
+    final usesBudget = budget > 0;
+
+    final referenceTotal = usesBudget ? budget : monthIncome;
+    final monthAvailable =
+        usesBudget ? (budget - monthExpenses) : (monthIncome - monthExpenses);
+
+    final spentBeforeToday = monthExpenses - spentToday;
+    final poolBeforeToday = usesBudget
+        ? (budget - spentBeforeToday)
+        : (monthIncome - spentBeforeToday);
+    final dailyBudget = dailyAllowance(poolBeforeToday, daysLeft);
+
+    return MonthFlowSnapshot(
+      usesBudget: usesBudget,
+      referenceTotal: referenceTotal,
+      monthAvailable: monthAvailable,
+      dailyBudget: dailyBudget,
+      spentToday: spentToday,
+      income: monthIncome,
+      expenses: monthExpenses,
+      daysLeft: daysLeft,
+    );
+  }
+}
+
+class MonthFlowSnapshot {
+  final bool usesBudget;
+  final double referenceTotal;
+  final double monthAvailable;
+  final double dailyBudget;
+  final double spentToday;
+  final double income;
+  final double expenses;
+  final int daysLeft;
+
+  const MonthFlowSnapshot({
+    required this.usesBudget,
+    required this.referenceTotal,
+    required this.monthAvailable,
+    required this.dailyBudget,
+    required this.spentToday,
+    required this.income,
+    required this.expenses,
+    required this.daysLeft,
+  });
+
+  String get referenceLabel => usesBudget ? 'presupuesto' : 'ingresos';
 }
 
 // ===========================================================================

@@ -15,14 +15,13 @@ class HomeScreen extends StatelessWidget {
     final state = Store.of(context);
     final today = DateTime.now();
     final now = state.focusMonth;
-    final spent = state.monthExpenses();
-    final income = state.monthIncome();
-    final plan = state.currentBudget();
-    final total = Finance.totalBudgeted(plan);
-    final remaining = total - spent;
-    final daysLeft = Finance.daysRemaining(today);
-    final dailyBudget = Finance.dailyAllowance(remaining, daysLeft);
-    final spentToday = Finance.expensesOnDay(state.transactions, today);
+    final flow = Finance.monthFlow(
+      plan: state.currentBudget(),
+      txs: state.transactions,
+      year: now.year,
+      month: now.month,
+      today: today,
+    );
     final incomeToday = Finance.incomeOnDay(state.transactions, today);
     final balance = Finance.workingBalance(state.accounts);
     final byCat = Finance.byCategory(
@@ -40,25 +39,25 @@ class HomeScreen extends StatelessWidget {
           const H1('Inicio'),
           const SizedBox(height: 16),
           DailySummaryCard(
-            dailyBudget: dailyBudget,
-            spentToday: spentToday,
+            flow: flow,
             incomeToday: incomeToday,
             balanceTotal: balance,
           ),
           const SizedBox(height: 16),
           MonthFlowCard(
-            income: income,
-            expenses: spent,
-            net: income - spent,
+            income: flow.income,
+            expenses: flow.expenses,
+            net: flow.monthAvailable,
           ),
           const SizedBox(height: 16),
           BudgetCard(
-            label: 'Presupuesto ${now.year}',
+            label: flow.usesBudget ? 'Presupuesto ${now.year}' : 'Flujo ${now.year}',
             month: _monthName(now.month),
-            remaining: remaining,
-            total: total,
-            daysLeft: daysLeft,
-            daily: dailyBudget,
+            remaining: flow.monthAvailable,
+            total: flow.referenceTotal,
+            daysLeft: flow.daysLeft,
+            daily: flow.dailyBudget,
+            referenceLabel: flow.referenceLabel,
           ),
           if (todayByCat.isNotEmpty) ...[
             const SizedBox(height: 20),

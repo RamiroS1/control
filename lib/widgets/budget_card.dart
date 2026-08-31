@@ -9,6 +9,7 @@ class BudgetCard extends StatelessWidget {
   final double total;
   final int daysLeft;
   final double daily;
+  final String referenceLabel;
 
   const BudgetCard({
     super.key,
@@ -18,11 +19,13 @@ class BudgetCard extends StatelessWidget {
     required this.total,
     required this.daysLeft,
     required this.daily,
+    this.referenceLabel = 'presupuesto',
   });
 
   @override
   Widget build(BuildContext context) {
-    final pct = total > 0 ? (total - remaining) / total : 0.0;
+    final pct = total > 0 ? ((total - remaining) / total).clamp(0.0, 1.0) : 0.0;
+    final refLabel = referenceLabel == 'ingresos' ? 'ingresos' : 'presupuesto';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -82,7 +85,7 @@ class BudgetCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('DE ${moneyFull(total)}',
+                  Text('DE $refLabel ${moneyFull(total)}',
                       style: TextStyle(
                           color: Colors.white.withOpacity(.7), fontSize: 11)),
                   const SizedBox(height: 8),

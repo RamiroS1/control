@@ -119,4 +119,59 @@ void main() {
     final sorted = Finance.sortedCategories({'comida': 10, 'transporte': 30});
     expect(sorted.first.key, 'transporte');
   });
+
+  test('month flow without budget uses income', () {
+    final plan = BudgetPlan(year: 2026, month: 8, total: 0, byCategory: {});
+    final txs = [
+      Transaction(
+          id: 'i1',
+          accountId: 'a',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 29000,
+          date: DateTime(2026, 8, 31)),
+      Transaction(
+          id: 'e1',
+          accountId: 'a',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 14000,
+          date: DateTime(2026, 8, 31)),
+    ];
+    final flow = Finance.monthFlow(
+      plan: plan,
+      txs: txs,
+      year: 2026,
+      month: 8,
+      today: DateTime(2026, 8, 31),
+    );
+    expect(flow.usesBudget, false);
+    expect(flow.monthAvailable, 15000);
+    expect(flow.dailyBudget, 15000);
+    expect(flow.referenceTotal, 29000);
+  });
+
+  test('month flow with budget', () {
+    final plan = BudgetPlan(
+        year: 2026, month: 8, total: 5000, byCategory: {'comida': 5000});
+    final txs = [
+      Transaction(
+          id: 'e1',
+          accountId: 'a',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 1000,
+          date: DateTime(2026, 8, 15)),
+    ];
+    final flow = Finance.monthFlow(
+      plan: plan,
+      txs: txs,
+      year: 2026,
+      month: 8,
+      today: DateTime(2026, 8, 15),
+    );
+    expect(flow.usesBudget, true);
+    expect(flow.monthAvailable, 4000);
+    expect(flow.referenceTotal, 5000);
+  });
 }
