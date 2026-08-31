@@ -69,7 +69,7 @@ class Finance {
       final d = DateTime(anchor.year, anchor.month - i, 1);
       final sum = forMonth(txs, d.year, d.month)
           .where((t) => t.type == type)
-          .fold(0, (s, t) => s + t.amount);
+          .fold<double>(0, (s, t) => s + t.amount);
       out.add(sum);
     }
     return out;

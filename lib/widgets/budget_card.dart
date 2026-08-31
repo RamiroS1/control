@@ -22,7 +22,7 @@ class BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = total > 0 ? (total - remaining) / total : 0;
+    final pct = total > 0 ? (total - remaining) / total : 0.0;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

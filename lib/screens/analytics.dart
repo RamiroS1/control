@@ -232,7 +232,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   List<PieChartSectionData> _pieSections(Map<String, double> byCat) {
-    final total = byCat.values.fold(0, (s, v) => s + v);
+    final total = byCat.values.fold<double>(0, (s, v) => s + v);
     if (total == 0) return [];
     return byCat.entries.map((e) {
       final cat = CategoryDef.byId(e.key);

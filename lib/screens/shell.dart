@@ -24,10 +24,10 @@ class _MainShellState extends State<MainShell> {
         backgroundColor: Colors.transparent,
         body: IndexedStack(
           index: _tab,
-          children: const [
-            HomeScreen(),
-            BudgetDetailScreen(),
-            AnalyticsScreen(),
+          children: [
+            const HomeScreen(),
+            const BudgetDetailScreen(),
+            const AnalyticsScreen(),
             _ProfilePlaceholder(),
           ],
         ),

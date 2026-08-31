@@ -3,7 +3,6 @@ import 'package:control/models.dart';
 import 'package:control/services.dart';
 
 void main() {
-  final now = DateTime(2026, 6, 15);
   final txs = [
     Transaction(
         id: '1',
