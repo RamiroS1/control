@@ -110,13 +110,31 @@ class Finance {
     return out;
   }
 
+  static List<double> monthlyNetTotals(
+    List<Transaction> txs,
+    DateTime anchor,
+    int count,
+  ) {
+    final out = <double>[];
+    for (int i = count - 1; i >= 0; i--) {
+      final d = DateTime(anchor.year, anchor.month - i, 1);
+      out.add(net(txs, d.year, d.month));
+    }
+    return out;
+  }
+
+  static List<DateTime> monthSeries(DateTime anchor, int count) =>
+      List.generate(
+        count,
+        (i) => DateTime(anchor.year, anchor.month - (count - 1 - i), 1),
+      );
+
   static List<String> monthLabels(DateTime anchor, int count) {
-    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return List.generate(count, (i) {
-      final d = DateTime(anchor.year, anchor.month - (count - 1 - i), 1);
-      return names[d.month - 1];
-    });
+    const names = [
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    ];
+    return monthSeries(anchor, count).map((d) => names[d.month - 1]).toList();
   }
 
   static double categoryAvailable(BudgetPlan plan, String catId, double spent) {

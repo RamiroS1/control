@@ -174,4 +174,31 @@ void main() {
     expect(flow.monthAvailable, 4000);
     expect(flow.referenceTotal, 5000);
   });
+
+  test('monthly net totals and labels', () {
+    final txs = [
+      Transaction(
+          id: 'i1',
+          accountId: 'a',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 29000,
+          date: DateTime(2026, 8, 31)),
+      Transaction(
+          id: 'e1',
+          accountId: 'a',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 14000,
+          date: DateTime(2026, 8, 31)),
+    ];
+    final anchor = DateTime(2026, 8, 31);
+    final nets = Finance.monthlyNetTotals(txs, anchor, 3);
+    expect(nets.length, 3);
+    expect(nets[2], 15000);
+    expect(nets[0], 0);
+
+    final labels = Finance.monthLabels(anchor, 3);
+    expect(labels, ['Jun', 'Jul', 'Ago']);
+  });
 }

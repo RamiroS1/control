@@ -15,18 +15,34 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int _range = 1; // 0=3m, 1=6m, 2=12m
 
+  Widget _monthLabel(String text) => Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(text, style: const TextStyle(fontSize: 10, color: T.ink45)),
+      );
+
+  Widget _axisLabel(String text) =>
+      Text(text, style: const TextStyle(fontSize: 9, color: T.ink45));
+
   @override
   Widget build(BuildContext context) {
     final state = Store.of(context);
     final now = DateTime.now();
     final counts = [3, 6, 12];
     final count = counts[_range];
-    final totals = Finance.monthlyTotals(state.transactions, now, count);
+    final netTotals = Finance.monthlyNetTotals(state.transactions, now, count);
+    final expenseTotals = Finance.monthlyTotals(state.transactions, now, count);
     final labels = Finance.monthLabels(now, count);
     final balance = Finance.workingBalance(state.accounts);
     final byCat = Finance.byCategory(
         state.transactions, state.focusMonth.year, state.focusMonth.month);
-    final maxBar = totals.isEmpty ? 1 : totals.reduce((a, b) => a > b ? a : b);
+    final maxExpense =
+        expenseTotals.isEmpty ? 1.0 : expenseTotals.reduce((a, b) => a > b ? a : b);
+    final maxNet = netTotals.isEmpty
+        ? 1.0
+        : netTotals.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
+    final minNet = netTotals.isEmpty ? 0.0 : netTotals.reduce((a, b) => a < b ? a : b);
+    final lineMinY = minNet < 0 ? minNet * 1.15 : 0;
+    final lineMaxY = maxNet <= 0 ? 1.0 : maxNet * 1.15;
 
     return SafeArea(
       child: ListView(
@@ -47,11 +63,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 const Label('balance operativo'),
                 const SizedBox(height: 6),
                 Readout(moneyFull(balance)),
-                const SizedBox(height: 20),
+                const SizedBox(height: 4),
+                const Text(
+                  'Flujo neto mensual (entradas − gastos)',
+                  style: TextStyle(fontSize: 11, color: T.ink45),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   height: 180,
                   child: LineChart(
                     LineChartData(
+                      minX: 0,
+                      maxX: (count - 1).toDouble(),
+                      minY: lineMinY,
+                      maxY: lineMaxY,
                       gridData: const FlGridData(show: false),
                       titlesData: FlTitlesData(
                         leftTitles: const AxisTitles(
@@ -63,17 +88,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
+                            interval: 1,
                             getTitlesWidget: (v, _) {
                               final i = v.toInt();
-                              if (i < 0 || i >= labels.length) {
+                              if (v != i.toDouble() || i < 0 || i >= labels.length) {
                                 return const SizedBox.shrink();
                               }
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(labels[i],
-                                    style: const TextStyle(
-                                        fontSize: 10, color: T.ink45)),
-                              );
+                              return _monthLabel(labels[i]);
                             },
                           ),
                         ),
@@ -82,15 +103,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       lineBarsData: [
                         LineChartBarData(
                           spots: List.generate(
-                              totals.length, (i) => FlSpot(i.toDouble(), totals[i])),
-                          isCurved: true,
+                            netTotals.length,
+                            (i) => FlSpot(i.toDouble(), netTotals[i]),
+                          ),
+                          isCurved: false,
                           color: T.volt,
                           barWidth: 3,
                           dotData: FlDotData(
                             show: true,
                             getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
                               radius: 4,
-                              color: T.volt,
+                              color: spot.y >= 0 ? T.go : T.clay,
                               strokeWidth: 2,
                               strokeColor: Colors.white,
                             ),
@@ -118,8 +141,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   height: 140,
                   child: BarChart(
                     BarChartData(
+                      minX: 0,
+                      maxX: (count - 1).toDouble(),
                       alignment: BarChartAlignment.spaceAround,
-                      maxY: maxBar * 1.2,
+                      maxY: maxExpense * 1.2,
                       gridData: const FlGridData(show: false),
                       borderData: FlBorderData(show: false),
                       titlesData: FlTitlesData(
@@ -132,24 +157,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
+                            interval: 1,
                             getTitlesWidget: (v, _) {
                               final i = v.toInt();
-                              if (i < 0 || i >= labels.length) {
+                              if (v != i.toDouble() || i < 0 || i >= labels.length) {
                                 return const SizedBox.shrink();
                               }
-                              return Text(labels[i],
-                                  style:
-                                      const TextStyle(fontSize: 9, color: T.ink45));
+                              return _axisLabel(labels[i]);
                             },
                           ),
                         ),
                       ),
-                      barGroups: List.generate(totals.length, (i) {
+                      barGroups: List.generate(expenseTotals.length, (i) {
                         return BarChartGroupData(
                           x: i,
                           barRods: [
                             BarChartRodData(
-                              toY: totals[i],
+                              toY: expenseTotals[i],
                               width: 14,
                               borderRadius: BorderRadius.circular(6),
                               gradient: T.gradient,
