@@ -153,11 +153,7 @@ class Finance {
     final monthAvailable =
         usesBudget ? (budget - monthExpenses) : (monthIncome - monthExpenses);
 
-    final spentBeforeToday = monthExpenses - spentToday;
-    final poolBeforeToday = usesBudget
-        ? (budget - spentBeforeToday)
-        : (monthIncome - spentBeforeToday);
-    final dailyBudget = dailyAllowance(poolBeforeToday, daysLeft);
+    final dailyBudget = dailyAllowance(monthAvailable, daysLeft);
 
     return MonthFlowSnapshot(
       usesBudget: usesBudget,
