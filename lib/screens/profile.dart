@@ -45,6 +45,66 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const Label('cuentas'),
           const SizedBox(height: 10),
+          Glass(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Cuentas sugeridas',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AccountTemplate.catalog.map((t) {
+                    final exists = state.hasAccountTemplate(t.id);
+                    return Opacity(
+                      opacity: exists ? 0.45 : 1,
+                      child: GestureDetector(
+                        onTap: exists
+                            ? null
+                            : () => _showAccountDialog(
+                                  context,
+                                  state,
+                                  template: t,
+                                ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: t.color.withOpacity(.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: t.color.withOpacity(.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(t.icon, size: 16, color: t.color),
+                              const SizedBox(width: 6),
+                              Text(t.name,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      color: t.color)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                if (AccountTemplate.catalog.any((t) => !state.hasAccountTemplate(t.id))) ...[
+                  const SizedBox(height: 12),
+                  Primary(
+                    label: 'Crear las 4 cuentas',
+                    height: 44,
+                    onTap: () => state.addSuggestedAccounts(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
           if (state.accounts.isEmpty)
             const Glass(
               child: Text(
@@ -228,13 +288,14 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     AppState state, {
     Account? existing,
+    AccountTemplate? template,
   }) async {
-    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final nameCtrl = TextEditingController(text: existing?.name ?? template?.name ?? '');
     final balanceCtrl = TextEditingController(
       text: existing != null ? existing.balance.toStringAsFixed(2) : '',
     );
-    final currencyCtrl = TextEditingController(text: existing?.currency ?? 'USD');
-    var color = existing?.color ?? T.volt;
+    final currencyCtrl = TextEditingController(text: existing?.currency ?? 'COP');
+    var color = existing?.color ?? template?.color ?? T.volt;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -295,15 +356,18 @@ class ProfileScreen extends StatelessWidget {
       state.updateAccount(Account(
         id: existing.id,
         name: name,
-        currency: currencyCtrl.text.trim().isEmpty ? 'USD' : currencyCtrl.text.trim(),
+        currency: currencyCtrl.text.trim().isEmpty ? 'COP' : currencyCtrl.text.trim(),
         balance: balance,
         color: color,
+        templateId: existing.templateId,
       ));
+    } else if (template != null) {
+      state.addAccountFromTemplate(template, balance: balance);
     } else {
       state.addAccount(Account(
         id: 'acc_${DateTime.now().millisecondsSinceEpoch}',
         name: name,
-        currency: currencyCtrl.text.trim().isEmpty ? 'USD' : currencyCtrl.text.trim(),
+        currency: currencyCtrl.text.trim().isEmpty ? 'COP' : currencyCtrl.text.trim(),
         balance: balance,
         color: color,
       ));
@@ -325,12 +389,13 @@ class _AccountRow extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 10,
+              width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: account.color,
-                borderRadius: BorderRadius.circular(4),
+                color: account.color.withOpacity(.15),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(AccountTemplate.iconFor(account), color: account.color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -338,7 +403,8 @@ class _AccountRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(account.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(account.currency, style: const TextStyle(fontSize: 11, color: T.ink45)),
+                  Text('${account.currency} · Saldo actual',
+                      style: const TextStyle(fontSize: 11, color: T.ink45)),
                 ],
               ),
             ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../core.dart';
+import '../models.dart';
 import '../services.dart';
 import '../state.dart';
+import '../widgets/accounts_breakdown.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/flow_cards.dart';
 import '../widgets/tx_row.dart';
@@ -73,6 +75,15 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 10),
           CategoryBreakdown(byCategory: byCat),
           const SizedBox(height: 20),
+          AccountsBreakdown(
+            accounts: state.accounts,
+            transactions: state.transactions,
+            year: now.year,
+            month: now.month,
+            onAddSuggested: () => state.addSuggestedAccounts(),
+            onAddTemplate: (t) => _promptTemplateBalance(context, state, t),
+          ),
+          const SizedBox(height: 20),
           const Label('movimientos recientes'),
           const SizedBox(height: 10),
           if (recent.isEmpty)
@@ -95,5 +106,34 @@ class HomeScreen extends StatelessWidget {
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
     ];
     return names[m - 1];
+  }
+
+  Future<void> _promptTemplateBalance(
+    BuildContext context,
+    AppState state,
+    AccountTemplate template,
+  ) async {
+    final ctrl = TextEditingController(text: '0');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Agregar ${template.name}'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Saldo inicial (COP)',
+            prefixText: '\$ ',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Agregar')),
+        ],
+      ),
+    );
+    if (saved != true) return;
+    final balance = double.tryParse(ctrl.text.replaceAll(',', '.')) ?? 0;
+    state.addAccountFromTemplate(template, balance: balance);
   }
 }

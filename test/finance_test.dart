@@ -201,4 +201,33 @@ void main() {
     final labels = Finance.monthLabels(anchor, 3);
     expect(labels, ['Jun', 'Jul', 'Ago']);
   });
+
+  test('account month stats', () {
+    final txs = [
+      Transaction(
+          id: '1',
+          accountId: 'acc1',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 100,
+          date: DateTime(2026, 8, 1)),
+      Transaction(
+          id: '2',
+          accountId: 'acc1',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 40,
+          date: DateTime(2026, 8, 2)),
+      Transaction(
+          id: '3',
+          accountId: 'acc2',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 10,
+          date: DateTime(2026, 8, 3)),
+    ];
+    expect(Finance.accountIncome(txs, 'acc1', 2026, 8), 100);
+    expect(Finance.accountExpenses(txs, 'acc1', 2026, 8), 40);
+    expect(Finance.accountExpenses(txs, 'acc2', 2026, 8), 10);
+  });
 }

@@ -90,6 +90,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool hasAccountTemplate(String templateId) =>
+      accounts.any((a) => a.templateId == templateId);
+
+  void addAccountFromTemplate(AccountTemplate template, {double balance = 0}) {
+    if (hasAccountTemplate(template.id)) return;
+    addAccount(template.toAccount(balance: balance));
+  }
+
+  void addSuggestedAccounts() {
+    for (final t in AccountTemplate.catalog) {
+      addAccountFromTemplate(t);
+    }
+  }
+
   void updateAccount(Account account) {
     final i = accounts.indexWhere((a) => a.id == account.id);
     if (i >= 0) {

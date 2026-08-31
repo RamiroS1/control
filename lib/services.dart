@@ -64,6 +64,40 @@ class Finance {
   static double net(List<Transaction> txs, int year, int month) =>
       income(txs, year, month) - expenses(txs, year, month);
 
+  static double accountIncome(
+    List<Transaction> txs,
+    String accountId,
+    int year,
+    int month,
+  ) =>
+      forMonth(txs, year, month)
+          .where((t) => t.accountId == accountId && t.type == TxType.income)
+          .fold(0, (s, t) => s + t.amount);
+
+  static double accountExpenses(
+    List<Transaction> txs,
+    String accountId,
+    int year,
+    int month,
+  ) =>
+      forMonth(txs, year, month)
+          .where((t) => t.accountId == accountId && t.type == TxType.expense)
+          .fold(0, (s, t) => s + t.amount);
+
+  static Map<String, double> accountExpensesByCategory(
+    List<Transaction> txs,
+    String accountId,
+    int year,
+    int month,
+  ) {
+    final map = <String, double>{};
+    for (final t in forMonth(txs, year, month)) {
+      if (t.accountId != accountId || t.type != TxType.expense) continue;
+      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amount;
+    }
+    return map;
+  }
+
   static Map<String, double> byCategory(
     List<Transaction> txs,
     int year,

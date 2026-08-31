@@ -102,6 +102,7 @@ class Account {
   String currency;
   double balance;
   Color color;
+  String? templateId;
 
   Account({
     required this.id,
@@ -109,6 +110,7 @@ class Account {
     required this.currency,
     required this.balance,
     required this.color,
+    this.templateId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -117,6 +119,7 @@ class Account {
         'currency': currency,
         'balance': balance,
         'color': color.value,
+        if (templateId != null) 'templateId': templateId,
       };
 
   factory Account.fromJson(Map<String, dynamic> j) => Account(
@@ -125,7 +128,69 @@ class Account {
         currency: j['currency'] as String,
         balance: (j['balance'] as num).toDouble(),
         color: Color(j['color'] as int),
+        templateId: j['templateId'] as String?,
       );
+}
+
+class AccountTemplate {
+  final String id;
+  final String name;
+  final IconData icon;
+  final Color color;
+
+  const AccountTemplate({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
+
+  static const efectivo = AccountTemplate(
+    id: 'efectivo',
+    name: 'Dinero físico',
+    icon: Icons.payments_outlined,
+    color: Color(0xFF10855A),
+  );
+  static const nequi = AccountTemplate(
+    id: 'nequi',
+    name: 'Nequi',
+    icon: Icons.phone_android,
+    color: Color(0xFF6C0099),
+  );
+  static const bancolombia = AccountTemplate(
+    id: 'bancolombia',
+    name: 'Bancolombia',
+    icon: Icons.account_balance,
+    color: Color(0xFF2C2C2C),
+  );
+  static const daviplata = AccountTemplate(
+    id: 'daviplata',
+    name: 'DaviPlata',
+    icon: Icons.smartphone,
+    color: Color(0xFFE4002B),
+  );
+
+  static const catalog = [efectivo, nequi, bancolombia, daviplata];
+
+  static AccountTemplate? byId(String? id) {
+    if (id == null) return null;
+    for (final t in catalog) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  Account toAccount({double balance = 0, String currency = 'COP'}) => Account(
+        id: 'acc_${id}_${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        currency: currency,
+        balance: balance,
+        color: color,
+        templateId: id,
+      );
+
+  static IconData iconFor(Account account) =>
+      byId(account.templateId)?.icon ?? Icons.account_balance_wallet_outlined;
 }
 
 class Transaction {

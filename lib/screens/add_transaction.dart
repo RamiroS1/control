@@ -415,6 +415,8 @@ class _AccountDropdown extends StatelessWidget {
                     decoration: BoxDecoration(color: a.color, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 10),
+                  Icon(AccountTemplate.iconFor(a), size: 18, color: a.color),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
