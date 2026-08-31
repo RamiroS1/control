@@ -41,8 +41,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? 1.0
         : netTotals.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
     final minNet = netTotals.isEmpty ? 0.0 : netTotals.reduce((a, b) => a < b ? a : b);
-    final lineMinY = minNet < 0 ? minNet * 1.15 : 0;
-    final lineMaxY = maxNet <= 0 ? 1.0 : maxNet * 1.15;
+    final lineMinY = (minNet < 0 ? minNet * 1.15 : 0.0).toDouble();
+    final lineMaxY = (maxNet <= 0 ? 1.0 : maxNet * 1.15).toDouble();
 
     return SafeArea(
       child: ListView(
@@ -141,8 +141,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   height: 140,
                   child: BarChart(
                     BarChartData(
-                      minX: 0,
-                      maxX: (count - 1).toDouble(),
                       alignment: BarChartAlignment.spaceAround,
                       maxY: maxExpense * 1.2,
                       gridData: const FlGridData(show: false),
