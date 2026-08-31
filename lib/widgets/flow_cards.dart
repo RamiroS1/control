@@ -183,7 +183,7 @@ class CategoryBreakdown extends StatelessWidget {
       child: Column(
         children: entries.map((e) {
           final cat = CategoryDef.byId(e.key);
-          final pct = max > 0 ? e.value / max : 0;
+          final pct = max > 0 ? (e.value / max).toDouble() : 0.0;
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
