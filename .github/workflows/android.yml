@@ -24,6 +24,7 @@ jobs:
         run: |
           flutter create . --project-name control --org com.control --platforms=android
           git checkout -- lib pubspec.yaml test
+          rm -f test/widget_test.dart
 
       - run: flutter pub get
       - run: flutter analyze

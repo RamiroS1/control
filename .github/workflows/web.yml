@@ -27,6 +27,7 @@ jobs:
         run: |
           flutter create . --project-name control --platforms=web
           git checkout -- lib pubspec.yaml web/index.html web/manifest.json test
+          rm -f test/widget_test.dart
 
       - run: flutter pub get
       - run: flutter analyze
