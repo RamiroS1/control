@@ -29,11 +29,22 @@ jobs:
           git checkout -- lib pubspec.yaml web/index.html web/manifest.json test
           rm -f test/widget_test.dart
 
+      - name: Inject app version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          sed -i "s/__APP_VERSION__/$VERSION/g" web/index.html
+
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
 
-      - run: flutter build web --release --base-href "/control/"
+      - run: flutter build web --release --base-href "/control/" --pwa-strategy=none
+
+      - name: Patch built index.html version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          sed -i "s/__APP_VERSION__/$VERSION/g" build/web/index.html
+          rm -f build/web/flutter_service_worker.js
 
       - uses: actions/upload-pages-artifact@v3
         with:

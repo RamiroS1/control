@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_info.dart';
 import '../core.dart';
 import '../models.dart';
 import '../services.dart';
 import '../state.dart';
+import '../utils/app_reload.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -66,6 +68,31 @@ class ProfileScreen extends StatelessWidget {
                 Icon(Icons.add, color: T.volt, size: 20),
                 SizedBox(width: 8),
                 Text('Agregar cuenta', style: TextStyle(fontWeight: FontWeight.w700, color: T.volt)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Label('app'),
+          const SizedBox(height: 10),
+          Glass(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                KV('Version', kAppVersion),
+                const SizedBox(height: 8),
+                Primary(
+                  label: 'Actualizar app',
+                  height: 44,
+                  onTap: () => reloadApp(forceRefresh: true),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Si la tienes en la pantalla de inicio y no se actualiza sola:\n'
+                  '1. Abre Safari (no el icono) y entra a ramiros1.github.io/control\n'
+                  '2. Toca Actualizar app arriba\n'
+                  '3. Si sigue igual: borra el icono de inicio y vuelve a agregarla desde Safari → Compartir → Anadir a pantalla de inicio',
+                  style: TextStyle(fontSize: 12, color: T.ink45, height: 1.45),
+                ),
               ],
             ),
           ),
