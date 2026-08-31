@@ -111,8 +111,12 @@ class AppState extends ChangeNotifier {
   }
 
   void addTransaction(Transaction t) {
+    final accIndex = accounts.indexWhere((a) => a.id == t.accountId);
+    if (accIndex < 0) {
+      throw StateError('Cuenta no encontrada');
+    }
     transactions.insert(0, t);
-    final acc = accounts.firstWhere((a) => a.id == t.accountId);
+    final acc = accounts[accIndex];
     if (t.type == TxType.expense) {
       acc.balance -= t.amount;
     } else {

@@ -6,19 +6,37 @@ import '../models.dart';
 import '../state.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  /// 0 = entrada, 1 = gasto
+  final int initialTab;
+
+  const AddTransactionScreen({super.key, this.initialTab = 0});
+
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
 
-class _AddTransactionScreenState extends State<AddTransactionScreen> {
-  final _noteCtrl = TextEditingController();
+class _AddTransactionScreenState extends State<AddTransactionScreen>
+    with SingleTickerProviderStateMixin {
+  final _noteCtrl = TextEditingController(text: 'Diario');
   final _amountCtrl = TextEditingController();
-  TxType _type = TxType.expense;
-  String _categoryId = CategoryDef.comida.id;
+  late TabController _tabs;
+  String _categoryId = CategoryDef.ingresos.id;
   String _accountId = '';
   DateTime _date = DateTime.now();
   bool _accountInit = false;
+
+  TxType get _type => _tabs.index == 0 ? TxType.income : TxType.expense;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 1),
+    );
+    _tabs.addListener(_onTabChanged);
+  }
 
   @override
   void didChangeDependencies() {
@@ -32,27 +50,70 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  void _onTabChanged() {
+    if (_tabs.indexIsChanging) return;
+    setState(() {
+      if (_type == TxType.income) {
+        _categoryId = CategoryDef.ingresos.id;
+        if (_noteCtrl.text.trim().isEmpty) _noteCtrl.text = 'Diario';
+      } else {
+        if (CategoryDef.byId(_categoryId).incomeOnly) {
+          _categoryId = CategoryDef.comida.id;
+        }
+        if (_noteCtrl.text == 'Diario') _noteCtrl.text = '';
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _tabs.removeListener(_onTabChanged);
+    _tabs.dispose();
     _noteCtrl.dispose();
     _amountCtrl.dispose();
     super.dispose();
   }
 
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   void _save() {
-    final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
-    if (amount == null || amount <= 0 || _accountId.isEmpty) return;
+    if (_accountId.isEmpty) {
+      _toast('Primero agrega una cuenta en Perfil');
+      return;
+    }
+
+    final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.').trim());
+    if (amount == null || amount <= 0) {
+      _toast('Ingresa un monto valido');
+      return;
+    }
+
+    final type = _type;
+    final cats = CategoryDef.forType(type);
+    var categoryId = _categoryId;
+    if (!cats.any((c) => c.id == categoryId)) {
+      categoryId = cats.first.id;
+    }
+
+    final note = _noteCtrl.text.trim();
     final state = Store.of(context);
-    state.addTransaction(Transaction(
-      id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
-      accountId: _accountId,
-      categoryId: _categoryId,
-      type: _type,
-      amount: amount,
-      date: DateTime(_date.year, _date.month, _date.day),
-      note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
-    ));
-    Navigator.of(context).pop();
+
+    try {
+      state.addTransaction(Transaction(
+        id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
+        accountId: _accountId,
+        categoryId: categoryId,
+        type: type,
+        amount: amount,
+        date: DateTime(_date.year, _date.month, _date.day),
+        note: note.isEmpty ? null : note,
+      ));
+      Navigator.of(context).pop();
+    } catch (_) {
+      _toast('No se pudo guardar. Revisa la cuenta seleccionada.');
+    }
   }
 
   Future<void> _pickDate() async {
@@ -80,8 +141,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final state = Store.of(context);
-    final cats = CategoryDef.forType(_type);
-    final isIncome = _type == TxType.income;
+    final incomeCats = CategoryDef.forType(TxType.income);
+    final expenseCats = CategoryDef.forType(TxType.expense);
+    final activeCats = _type == TxType.income ? incomeCats : expenseCats;
+
+    if (!activeCats.any((c) => c.id == _categoryId)) {
+      _categoryId = activeCats.first.id;
+    }
 
     return Ambient(
       child: Scaffold(
@@ -91,166 +157,51 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Text(
-            isIncome ? 'Registrar entrada' : 'Registrar gasto',
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          title: const Text('Registrar movimiento',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+          bottom: TabBar(
+            controller: _tabs,
+            labelColor: T.ink,
+            unselectedLabelColor: T.ink45,
+            indicatorColor: T.volt,
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            tabs: const [
+              Tab(text: 'Entrada'),
+              Tab(text: 'Gasto'),
+            ],
           ),
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(20),
+        body: TabBarView(
+          controller: _tabs,
           children: [
-            Container(
-              height: 120,
-              alignment: Alignment.center,
-              child: Icon(Icons.account_balance_wallet,
-                  size: 64, color: T.volt.withOpacity(.35)),
+            _FormBody(
+              isIncome: true,
+              state: state,
+              noteCtrl: _noteCtrl,
+              amountCtrl: _amountCtrl,
+              categoryId: _categoryId,
+              accountId: _accountId,
+              dateLabel: _dateLabel(),
+              categories: incomeCats,
+              onCategoryChanged: (id) => setState(() => _categoryId = id),
+              onAccountChanged: (id) => setState(() => _accountId = id),
+              onPickDate: _pickDate,
+              onSave: _save,
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _TypeChip(
-                    label: 'Gasto',
-                    selected: _type == TxType.expense,
-                    color: T.clay,
-                    onTap: () => setState(() {
-                      _type = TxType.expense;
-                      if (CategoryDef.byId(_categoryId).incomeOnly) {
-                        _categoryId = CategoryDef.comida.id;
-                      }
-                    }),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _TypeChip(
-                    label: 'Entrada',
-                    selected: _type == TxType.income,
-                    color: T.go,
-                    onTap: () => setState(() {
-                      _type = TxType.income;
-                      _categoryId = CategoryDef.ingresos.id;
-                    }),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Label('nombre'),
-            const SizedBox(height: 8),
-            Glass(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: TextField(
-                controller: _noteCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Descripcion',
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Label('cuenta'),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 44,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: state.accounts.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final a = state.accounts[i];
-                  final sel = a.id == _accountId;
-                  return GestureDetector(
-                    onTap: () => setState(() => _accountId = a.id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: sel ? a.color.withOpacity(.25) : Colors.white.withOpacity(.7),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: sel ? a.color : T.edge, width: sel ? 2 : 1),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(a.name,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: sel ? a.color : T.ink45)),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Label('categoria'),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 56,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: cats.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
-                  final c = cats[i];
-                  final sel = c.id == _categoryId;
-                  return GestureDetector(
-                    onTap: () => setState(() => _categoryId = c.id),
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: sel ? c.color.withOpacity(.25) : Colors.white.withOpacity(.7),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: sel ? c.color : T.edge, width: sel ? 2 : 1),
-                      ),
-                      child: Icon(c.icon, color: c.color, size: 24),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Label('fecha'),
-            const SizedBox(height: 8),
-            Glass(
-              onTap: _pickDate,
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 18, color: T.volt),
-                  const SizedBox(width: 10),
-                  Text(_dateLabel(), style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, color: T.ink45, size: 20),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Label('importe'),
-            const SizedBox(height: 8),
-            Glass(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: TextField(
-                controller: _amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-                ],
-                style: const TextStyle(
-                    fontFamily: T.mono,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700),
-                decoration: const InputDecoration(
-                  hintText: '0.00',
-                  prefixText: '\$ ',
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Primary(
-              label: isIncome ? 'Guardar entrada' : 'Guardar gasto',
-              onTap: _save,
+            _FormBody(
+              isIncome: false,
+              state: state,
+              noteCtrl: _noteCtrl,
+              amountCtrl: _amountCtrl,
+              categoryId: _categoryId,
+              accountId: _accountId,
+              dateLabel: _dateLabel(),
+              categories: expenseCats,
+              onCategoryChanged: (id) => setState(() => _categoryId = id),
+              onAccountChanged: (id) => setState(() => _accountId = id),
+              onPickDate: _pickDate,
+              onSave: _save,
             ),
           ],
         ),
@@ -259,34 +210,220 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 }
 
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final Color color;
-  final VoidCallback onTap;
-  const _TypeChip({
-    required this.label,
-    required this.selected,
-    required this.color,
-    required this.onTap,
+class _FormBody extends StatelessWidget {
+  final bool isIncome;
+  final AppState state;
+  final TextEditingController noteCtrl;
+  final TextEditingController amountCtrl;
+  final String categoryId;
+  final String accountId;
+  final String dateLabel;
+  final List<CategoryDef> categories;
+  final ValueChanged<String> onCategoryChanged;
+  final ValueChanged<String> onAccountChanged;
+  final VoidCallback onPickDate;
+  final VoidCallback onSave;
+
+  const _FormBody({
+    required this.isIncome,
+    required this.state,
+    required this.noteCtrl,
+    required this.amountCtrl,
+    required this.categoryId,
+    required this.accountId,
+    required this.dateLabel,
+    required this.categories,
+    required this.onCategoryChanged,
+    required this.onAccountChanged,
+    required this.onPickDate,
+    required this.onSave,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(.18) : Colors.white.withOpacity(.7),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? color : T.edge, width: selected ? 2 : 1),
-        ),
-        child: Text(label,
-            style: TextStyle(
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (state.accounts.isEmpty)
+          Glass(
+            child: Text(
+              'Ve a Perfil y crea una cuenta antes de registrar ${isIncome ? 'entradas' : 'gastos'}.',
+              style: const TextStyle(color: T.clay, fontSize: 13, height: 1.4),
+            ),
+          )
+        else ...[
+          Label(isIncome ? 'descripcion ingreso' : 'descripcion'),
+          const SizedBox(height: 8),
+          Glass(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: TextField(
+              controller: noteCtrl,
+              decoration: InputDecoration(
+                hintText: isIncome ? 'Diario' : 'Ej. Almuerzo, Uber...',
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Label('cuenta'),
+          const SizedBox(height: 8),
+          _AccountDropdown(
+            accounts: state.accounts,
+            accountId: accountId,
+            onChanged: onAccountChanged,
+          ),
+          const SizedBox(height: 16),
+          const Label('categoria'),
+          const SizedBox(height: 8),
+          _CategoryDropdown(
+            categories: categories,
+            categoryId: categoryId,
+            onChanged: onCategoryChanged,
+          ),
+          const SizedBox(height: 16),
+          const Label('fecha'),
+          const SizedBox(height: 8),
+          Glass(
+            onTap: onPickDate,
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 18, color: T.volt),
+                const SizedBox(width: 10),
+                Text(dateLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: T.ink45, size: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Label('importe'),
+          const SizedBox(height: 8),
+          Glass(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+              ],
+              style: const TextStyle(
+                fontFamily: T.mono,
+                fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: selected ? color : T.ink45)),
+              ),
+              decoration: const InputDecoration(
+                hintText: '0.00',
+                prefixText: '\$ ',
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Primary(
+            label: isIncome ? 'Guardar entrada' : 'Guardar gasto',
+            onTap: onSave,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CategoryDropdown extends StatelessWidget {
+  final List<CategoryDef> categories;
+  final String categoryId;
+  final ValueChanged<String> onChanged;
+
+  const _CategoryDropdown({
+    required this.categories,
+    required this.categoryId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeCategoryId = categories.any((c) => c.id == categoryId)
+        ? categoryId
+        : categories.first.id;
+
+    return Glass(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: safeCategoryId,
+          icon: const Icon(Icons.expand_more, color: T.ink45),
+          items: categories.map((c) {
+            return DropdownMenuItem(
+              value: c.id,
+              child: Row(
+                children: [
+                  Icon(c.icon, color: c.color, size: 20),
+                  const SizedBox(width: 10),
+                  Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountDropdown extends StatelessWidget {
+  final List<Account> accounts;
+  final String accountId;
+  final ValueChanged<String> onChanged;
+
+  const _AccountDropdown({
+    required this.accounts,
+    required this.accountId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value = accounts.any((a) => a.id == accountId)
+        ? accountId
+        : accounts.first.id;
+
+    return Glass(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: value,
+          icon: const Icon(Icons.expand_more, color: T.ink45),
+          items: accounts.map((a) {
+            return DropdownMenuItem(
+              value: a.id,
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(color: a.color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  Text(
+                    moneyFull(a.balance),
+                    style: const TextStyle(fontFamily: T.mono, fontSize: 11, color: T.ink45),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
       ),
     );
   }
