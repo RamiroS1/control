@@ -7,50 +7,93 @@ class CategoryDef {
   final String name;
   final IconData icon;
   final Color color;
+  final bool incomeOnly;
 
   const CategoryDef({
     required this.id,
     required this.name,
     required this.icon,
     required this.color,
+    this.incomeOnly = false,
   });
 
-  static const food = CategoryDef(
-      id: 'food', name: 'Comida', icon: Icons.restaurant, color: Color(0xFFFF9F43));
-  static const transport = CategoryDef(
-      id: 'transport', name: 'Transporte', icon: Icons.directions_car, color: Color(0xFF3B5BDB));
-  static const education = CategoryDef(
-      id: 'education', name: 'Educacion', icon: Icons.school, color: Color(0xFF6C5CE0));
-  static const entertainment = CategoryDef(
-      id: 'entertainment',
-      name: 'Entretenimiento',
-      icon: Icons.movie,
-      color: Color(0xFF00C9A7));
-  static const shopping = CategoryDef(
-      id: 'shopping', name: 'Compras', icon: Icons.shopping_bag, color: Color(0xFFE4573D));
-  static const health = CategoryDef(
-      id: 'health', name: 'Salud', icon: Icons.favorite, color: Color(0xFFFF6B6B));
-  static const home = CategoryDef(
-      id: 'home', name: 'Hogar', icon: Icons.home, color: Color(0xFF8E44AD));
-  static const salary = CategoryDef(
-      id: 'salary', name: 'Salario', icon: Icons.account_balance_wallet, color: Color(0xFF10855A));
-  static const other = CategoryDef(
-      id: 'other', name: 'Otros', icon: Icons.more_horiz, color: Color(0xFF95A5A6));
+  static const transporte = CategoryDef(
+    id: 'transporte',
+    name: 'Transporte',
+    icon: Icons.directions_car,
+    color: Color(0xFF3B5BDB),
+  );
+  static const serviciosApartamento = CategoryDef(
+    id: 'servicios_apartamento',
+    name: 'Servicios apartamento',
+    icon: Icons.lightbulb_outline,
+    color: Color(0xFF6C5CE0),
+  );
+  static const comida = CategoryDef(
+    id: 'comida',
+    name: 'Comida',
+    icon: Icons.restaurant,
+    color: Color(0xFFFF9F43),
+  );
+  static const arriendo = CategoryDef(
+    id: 'arriendo',
+    name: 'Arriendo',
+    icon: Icons.apartment,
+    color: Color(0xFF8E44AD),
+  );
+  static const tarjetaCredito = CategoryDef(
+    id: 'tarjeta_credito',
+    name: 'Tarjeta de credito',
+    icon: Icons.credit_card,
+    color: Color(0xFFE4573D),
+  );
+  static const deudas = CategoryDef(
+    id: 'deudas',
+    name: 'Deudas',
+    icon: Icons.account_balance,
+    color: Color(0xFFFF6B6B),
+  );
+  static const ahorros = CategoryDef(
+    id: 'ahorros',
+    name: 'Ahorros',
+    icon: Icons.savings_outlined,
+    color: Color(0xFF10855A),
+  );
+  static const ingresos = CategoryDef(
+    id: 'ingresos',
+    name: 'Ingresos',
+    icon: Icons.account_balance_wallet,
+    color: Color(0xFF00C9A7),
+    incomeOnly: true,
+  );
+  static const otros = CategoryDef(
+    id: 'otros',
+    name: 'Otros',
+    icon: Icons.more_horiz,
+    color: Color(0xFF95A5A6),
+  );
 
   static const catalog = <CategoryDef>[
-    food,
-    transport,
-    education,
-    entertainment,
-    shopping,
-    health,
-    home,
-    salary,
-    other,
+    transporte,
+    serviciosApartamento,
+    comida,
+    arriendo,
+    tarjetaCredito,
+    deudas,
+    ahorros,
+    ingresos,
+    otros,
   ];
 
+  static List<CategoryDef> forType(TxType type) => type == TxType.income
+      ? catalog.where((c) => c.incomeOnly || c.id == ahorros.id).toList()
+      : catalog.where((c) => !c.incomeOnly).toList();
+
+  static List<CategoryDef> get expenseCatalog =>
+      catalog.where((c) => !c.incomeOnly).toList();
+
   static CategoryDef byId(String id) =>
-      catalog.firstWhere((c) => c.id == id, orElse: () => other);
+      catalog.firstWhere((c) => c.id == id, orElse: () => otros);
 }
 
 class Account {

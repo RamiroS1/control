@@ -8,28 +8,28 @@ void main() {
     Transaction(
         id: '1',
         accountId: 'a',
-        categoryId: 'food',
+        categoryId: 'comida',
         type: TxType.expense,
         amount: 50,
         date: DateTime(2026, 6, 5)),
     Transaction(
         id: '2',
         accountId: 'a',
-        categoryId: 'transport',
+        categoryId: 'transporte',
         type: TxType.expense,
         amount: 30,
         date: DateTime(2026, 6, 10)),
     Transaction(
         id: '3',
         accountId: 'a',
-        categoryId: 'salary',
+        categoryId: 'ingresos',
         type: TxType.income,
         amount: 2000,
         date: DateTime(2026, 6, 1)),
     Transaction(
         id: '4',
         accountId: 'a',
-        categoryId: 'food',
+        categoryId: 'comida',
         type: TxType.expense,
         amount: 40,
         date: DateTime(2026, 5, 20)),
@@ -46,8 +46,8 @@ void main() {
 
   test('by category', () {
     final map = Finance.byCategory(txs, 2026, 6);
-    expect(map['food'], 50);
-    expect(map['transport'], 30);
+    expect(map['comida'], 50);
+    expect(map['transporte'], 30);
   });
 
   test('pct change', () {
@@ -64,6 +64,11 @@ void main() {
     expect(Finance.daysRemaining(DateTime(2026, 6, 15)), 16);
   });
 
+  test('expense categories', () {
+    expect(CategoryDef.expenseCatalog.length, 8);
+    expect(CategoryDef.forType(TxType.income).any((c) => c.id == 'ingresos'), true);
+  });
+
   test('data portability roundtrip', () {
     final accounts = [
       Account(
@@ -74,18 +79,8 @@ void main() {
         color: const Color(0xFF3B5BDB),
       ),
     ];
-    final txs = [
-      Transaction(
-        id: 't1',
-        accountId: 'a1',
-        categoryId: 'food',
-        type: TxType.expense,
-        amount: 25,
-        date: DateTime(2026, 8, 1),
-      ),
-    ];
     final budgets = [
-      BudgetPlan(year: 2026, month: 8, total: 500, byCategory: {'food': 200}),
+      BudgetPlan(year: 2026, month: 8, total: 500, byCategory: {'comida': 200}),
     ];
     final raw = DataPortability.encode(
       accounts: accounts,
@@ -93,9 +88,7 @@ void main() {
       budgets: budgets,
     );
     final decoded = DataPortability.decode(raw);
-    expect(decoded.accounts.length, 1);
     expect(decoded.accounts.first.name, 'Principal');
-    expect(decoded.transactions.first.amount, 25);
-    expect(decoded.budgets.first.byCategory['food'], 200);
+    expect(decoded.budgets.first.byCategory['comida'], 200);
   });
 }

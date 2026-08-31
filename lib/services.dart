@@ -105,9 +105,21 @@ class Finance {
 // ===========================================================================
 
 class Storage {
+  static const dataVersion = 2;
   static const _accounts = 'control_accounts';
   static const _txs = 'control_transactions';
   static const _budgets = 'control_budgets';
+  static const _version = 'control_data_version';
+
+  /// Limpia datos mock viejos guardados en el navegador al actualizar la app.
+  Future<void> migrateIfNeeded() async {
+    final p = await SharedPreferences.getInstance();
+    final stored = p.getInt(_version) ?? 0;
+    if (stored < dataVersion) {
+      await clearAll();
+      await p.setInt(_version, dataVersion);
+    }
+  }
 
   Future<void> saveAccounts(List<Account> list) async {
     final p = await SharedPreferences.getInstance();
@@ -227,15 +239,13 @@ class Seed {
   static BudgetPlan budget(DateTime now) => BudgetPlan(
         year: now.year,
         month: now.month,
-        total: 2500,
+        total: 0,
         byCategory: {
-          'food': 400,
-          'transport': 200,
-          'education': 350,
-          'entertainment': 150,
-          'shopping': 300,
-          'health': 100,
-          'home': 500,
+          'comida': 400,
+          'transporte': 200,
+          'arriendo': 850,
+          'servicios_apartamento': 150,
+          'tarjeta_credito': 300,
         },
       );
 
@@ -246,83 +256,35 @@ class Seed {
       Transaction(
           id: 'tx1',
           accountId: 'acc1',
-          categoryId: 'education',
+          categoryId: 'comida',
           type: TxType.expense,
           amount: 95.88,
           date: DateTime(y, m, 5),
-          note: 'Curso online'),
+          note: 'Supermercado'),
       Transaction(
           id: 'tx2',
           accountId: 'acc1',
-          categoryId: 'food',
-          type: TxType.expense,
-          amount: 5.88,
-          date: DateTime(y, m, 8),
-          note: 'Cafe'),
-      Transaction(
-          id: 'tx3',
-          accountId: 'acc1',
-          categoryId: 'entertainment',
-          type: TxType.expense,
-          amount: 26.99,
-          date: DateTime(y, m, 1),
-          note: 'Streaming'),
-      Transaction(
-          id: 'tx4',
-          accountId: 'acc1',
-          categoryId: 'transport',
+          categoryId: 'transporte',
           type: TxType.expense,
           amount: 45,
           date: DateTime(y, m, 12),
-          note: 'Gasolina'),
+          note: 'Transporte'),
       Transaction(
-          id: 'tx5',
-          accountId: 'acc1',
-          categoryId: 'shopping',
-          type: TxType.expense,
-          amount: 89.50,
-          date: DateTime(y, m, 15),
-          note: 'Ropa'),
-      Transaction(
-          id: 'tx6',
+          id: 'tx3',
           accountId: 'acc2',
-          categoryId: 'salary',
+          categoryId: 'ingresos',
           type: TxType.income,
           amount: 3200,
           date: DateTime(y, m, 1),
           note: 'Nomina'),
       Transaction(
-          id: 'tx7',
+          id: 'tx4',
           accountId: 'acc1',
-          categoryId: 'home',
+          categoryId: 'arriendo',
           type: TxType.expense,
           amount: 850,
           date: DateTime(y, m, 2),
-          note: 'Alquiler'),
-      Transaction(
-          id: 'tx8',
-          accountId: 'acc1',
-          categoryId: 'food',
-          type: TxType.expense,
-          amount: 120,
-          date: DateTime(y, m - 1, 20),
-          note: 'Supermercado'),
-      Transaction(
-          id: 'tx9',
-          accountId: 'acc1',
-          categoryId: 'entertainment',
-          type: TxType.expense,
-          amount: 55,
-          date: DateTime(y, m - 1, 10),
-          note: 'Cine'),
-      Transaction(
-          id: 'tx10',
-          accountId: 'acc1',
-          categoryId: 'health',
-          type: TxType.expense,
-          amount: 35,
-          date: DateTime(y, m - 1, 25),
-          note: 'Farmacia'),
+          note: 'Arriendo'),
     ];
   }
 }

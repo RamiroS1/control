@@ -23,10 +23,7 @@ class BudgetDetailScreen extends StatelessWidget {
 
     final categories = plan.byCategory.keys.isNotEmpty
         ? plan.byCategory.keys.toList()
-        : CategoryDef.catalog
-            .where((c) => c.id != 'salary')
-            .map((c) => c.id)
-            .toList();
+        : CategoryDef.expenseCatalog.map((c) => c.id).toList();
 
     return SafeArea(
       child: ListView(

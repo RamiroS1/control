@@ -15,7 +15,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _noteCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   TxType _type = TxType.expense;
-  String _categoryId = CategoryDef.food.id;
+  String _categoryId = CategoryDef.comida.id;
   String _accountId = '';
   bool _accountInit = false;
 
@@ -57,9 +57,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final state = Store.of(context);
-    final cats = CategoryDef.catalog
-        .where((c) => _type == TxType.income ? c.id == 'salary' : c.id != 'salary')
-        .toList();
+    final cats = CategoryDef.forType(_type);
 
     return Ambient(
       child: Scaffold(
@@ -91,7 +89,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     color: T.clay,
                     onTap: () => setState(() {
                       _type = TxType.expense;
-                      if (_categoryId == 'salary') _categoryId = 'food';
+                      if (CategoryDef.byId(_categoryId).incomeOnly) {
+                        _categoryId = CategoryDef.comida.id;
+                      }
                     }),
                   ),
                 ),
@@ -103,7 +103,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     color: T.go,
                     onTap: () => setState(() {
                       _type = TxType.income;
-                      _categoryId = 'salary';
+                      _categoryId = CategoryDef.ingresos.id;
                     }),
                   ),
                 ),

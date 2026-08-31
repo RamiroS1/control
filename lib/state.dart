@@ -19,6 +19,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> init() async {
+    await storage.migrateIfNeeded();
     final acc = await storage.loadAccounts();
     final txs = await storage.loadTransactions();
     final bud = await storage.loadBudgets();
@@ -137,14 +138,12 @@ class AppState extends ChangeNotifier {
   BudgetPlan currentBudget() {
     final existing = budgetFor(focusMonth);
     if (existing != null) return existing;
-    final plan = BudgetPlan(
+    return BudgetPlan(
       year: focusMonth.year,
       month: focusMonth.month,
-      total: 2500,
+      total: 0,
       byCategory: {},
     );
-    budgets.add(plan);
-    return plan;
   }
 
   double budgetRemaining() {

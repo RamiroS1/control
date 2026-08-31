@@ -29,10 +29,7 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
 
     final catIds = plan.byCategory.keys.isNotEmpty
         ? plan.byCategory.keys.toList()
-        : CategoryDef.catalog
-            .where((c) => c.id != 'salary')
-            .map((c) => c.id)
-            .toList();
+        : CategoryDef.expenseCatalog.map((c) => c.id).toList();
 
     for (final id in catIds) {
       final amount = plan.byCategory[id] ?? 0;
@@ -100,7 +97,7 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
                 style: const TextStyle(fontFamily: T.mono, fontSize: 22, fontWeight: FontWeight.w700),
                 decoration: const InputDecoration(
-                  hintText: '2500',
+                  hintText: '0',
                   prefixText: '\$ ',
                   border: InputBorder.none,
                 ),
