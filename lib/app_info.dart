@@ -1,2 +1,2 @@
 /// Version visible en Perfil. Mantener alineada con pubspec.yaml.
-const String kAppVersion = '1.1.1+3';
+const String kAppVersion = '1.2.0+4';

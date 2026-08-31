@@ -16,6 +16,41 @@ class Finance {
   static List<Transaction> forMonth(List<Transaction> txs, int year, int month) =>
       txs.where((t) => sameMonth(t.date, year, month)).toList();
 
+  static bool sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static List<Transaction> forDay(List<Transaction> txs, DateTime day) =>
+      txs.where((t) => sameDay(t.date, day)).toList();
+
+  static double expensesOnDay(List<Transaction> txs, DateTime day) =>
+      forDay(txs, day)
+          .where((t) => t.type == TxType.expense)
+          .fold(0, (s, t) => s + t.amount);
+
+  static double incomeOnDay(List<Transaction> txs, DateTime day) =>
+      forDay(txs, day)
+          .where((t) => t.type == TxType.income)
+          .fold(0, (s, t) => s + t.amount);
+
+  static Map<String, double> byCategoryForDay(
+    List<Transaction> txs,
+    DateTime day, {
+    TxType type = TxType.expense,
+  }) {
+    final map = <String, double>{};
+    for (final t in forDay(txs, day)) {
+      if (t.type != type) continue;
+      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amount;
+    }
+    return map;
+  }
+
+  static List<MapEntry<String, double>> sortedCategories(Map<String, double> byCat) {
+    final entries = byCat.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries;
+  }
+
   static double expenses(List<Transaction> txs, int year, int month) =>
       forMonth(txs, year, month)
           .where((t) => t.type == TxType.expense)

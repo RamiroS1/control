@@ -17,6 +17,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   TxType _type = TxType.expense;
   String _categoryId = CategoryDef.comida.id;
   String _accountId = '';
+  DateTime _date = DateTime.now();
   bool _accountInit = false;
 
   @override
@@ -48,16 +49,39 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       categoryId: _categoryId,
       type: _type,
       amount: amount,
-      date: DateTime.now(),
+      date: DateTime(_date.year, _date.month, _date.day),
       note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
     ));
     Navigator.of(context).pop();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  String _dateLabel() {
+    final now = DateTime.now();
+    if (_date.year == now.year && _date.month == now.month && _date.day == now.day) {
+      return 'Hoy';
+    }
+    const months = [
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    ];
+    return '${_date.day} ${months[_date.month - 1]} ${_date.year}';
   }
 
   @override
   Widget build(BuildContext context) {
     final state = Store.of(context);
     final cats = CategoryDef.forType(_type);
+    final isIncome = _type == TxType.income;
 
     return Ambient(
       child: Scaffold(
@@ -67,8 +91,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: const Text('Nuevo movimiento',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+          title: Text(
+            isIncome ? 'Registrar entrada' : 'Registrar gasto',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -98,7 +124,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _TypeChip(
-                    label: 'Ingreso',
+                    label: 'Entrada',
                     selected: _type == TxType.income,
                     color: T.go,
                     onTap: () => setState(() {
@@ -185,6 +211,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            const Label('fecha'),
+            const SizedBox(height: 8),
+            Glass(
+              onTap: _pickDate,
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 18, color: T.volt),
+                  const SizedBox(width: 10),
+                  Text(_dateLabel(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, color: T.ink45, size: 20),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             const Label('importe'),
             const SizedBox(height: 8),
             Glass(
@@ -207,7 +248,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            Primary(label: 'Guardar', onTap: _save),
+            Primary(
+              label: isIncome ? 'Guardar entrada' : 'Guardar gasto',
+              onTap: _save,
+            ),
           ],
         ),
       ),

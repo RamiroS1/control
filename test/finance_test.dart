@@ -91,4 +91,32 @@ void main() {
     expect(decoded.accounts.first.name, 'Principal');
     expect(decoded.budgets.first.byCategory['comida'], 200);
   });
+
+  test('daily tracking', () {
+    final dayTxs = [
+      Transaction(
+          id: 'd1',
+          accountId: 'a',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 20,
+          date: DateTime(2026, 8, 31, 14)),
+      Transaction(
+          id: 'd2',
+          accountId: 'a',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 100,
+          date: DateTime(2026, 8, 31, 9)),
+    ];
+    final day = DateTime(2026, 8, 31);
+    expect(Finance.expensesOnDay(dayTxs, day), 20);
+    expect(Finance.incomeOnDay(dayTxs, day), 100);
+    expect(Finance.byCategoryForDay(dayTxs, day)['comida'], 20);
+  });
+
+  test('sorted categories', () {
+    final sorted = Finance.sortedCategories({'comida': 10, 'transporte': 30});
+    expect(sorted.first.key, 'transporte');
+  });
 }
