@@ -1,3 +1,6 @@
+// Solo se importa en web via conditional export.
+// ignore_for_file: avoid_web_libraries_in_flutter
+
 import 'dart:html' as html;
 
 void reloadApp({bool forceRefresh = false}) {
