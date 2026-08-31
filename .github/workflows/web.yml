@@ -1,0 +1,49 @@
+name: Deploy Web
+
+# Publica la app como sitio web en GitHub Pages.
+# En iPhone: Safari -> Compartir -> Anadir a pantalla de inicio.
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Scaffold web
+        run: |
+          flutter create . --project-name control --platforms=web
+          git checkout -- lib pubspec.yaml web/index.html web/manifest.json
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      - run: flutter build web --release --base-href "/control/"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
