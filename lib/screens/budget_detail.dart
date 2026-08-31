@@ -15,7 +15,6 @@ class BudgetDetailScreen extends StatelessWidget {
     final state = Store.of(context);
     final now = state.focusMonth;
     final plan = state.currentBudget();
-    final spent = state.monthExpenses();
     final flow = Finance.monthFlow(
       plan: plan,
       txs: state.transactions,
