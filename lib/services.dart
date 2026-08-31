@@ -147,6 +147,61 @@ class Storage {
     final list = jsonDecode(raw) as List;
     return list.map((j) => BudgetPlan.fromJson(j as Map<String, dynamic>)).toList();
   }
+
+  Future<void> clearAll() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_accounts);
+    await p.remove(_txs);
+    await p.remove(_budgets);
+  }
+}
+
+// ===========================================================================
+// IMPORT / EXPORT
+// ===========================================================================
+
+class DataPortability {
+  static Map<String, dynamic> pack({
+    required List<Account> accounts,
+    required List<Transaction> transactions,
+    required List<BudgetPlan> budgets,
+  }) =>
+      {
+        'version': 1,
+        'exportedAt': DateTime.now().toIso8601String(),
+        'accounts': accounts.map((a) => a.toJson()).toList(),
+        'transactions': transactions.map((t) => t.toJson()).toList(),
+        'budgets': budgets.map((b) => b.toJson()).toList(),
+      };
+
+  static String encode({
+    required List<Account> accounts,
+    required List<Transaction> transactions,
+    required List<BudgetPlan> budgets,
+  }) =>
+      const JsonEncoder.withIndent('  ').convert(pack(
+            accounts: accounts,
+            transactions: transactions,
+            budgets: budgets,
+          ));
+
+  static ({
+    List<Account> accounts,
+    List<Transaction> transactions,
+    List<BudgetPlan> budgets,
+  }) decode(String raw) {
+    final root = jsonDecode(raw) as Map<String, dynamic>;
+    final acc = (root['accounts'] as List)
+        .map((j) => Account.fromJson(j as Map<String, dynamic>))
+        .toList();
+    final txs = (root['transactions'] as List)
+        .map((j) => Transaction.fromJson(j as Map<String, dynamic>))
+        .toList();
+    final bud = (root['budgets'] as List)
+        .map((j) => BudgetPlan.fromJson(j as Map<String, dynamic>))
+        .toList();
+    return (accounts: acc, transactions: txs, budgets: bud);
+  }
 }
 
 // ===========================================================================

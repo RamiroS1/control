@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../core.dart';
-import '../services.dart';
-import '../state.dart';
 import 'add_transaction.dart';
 import 'analytics.dart';
 import 'budget_detail.dart';
 import 'home.dart';
+import 'profile.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -28,7 +27,7 @@ class _MainShellState extends State<MainShell> {
             const HomeScreen(),
             const BudgetDetailScreen(),
             const AnalyticsScreen(),
-            _ProfilePlaceholder(),
+            const ProfileScreen(),
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -77,43 +76,6 @@ class _NavIcon extends StatelessWidget {
     return IconButton(
       onPressed: () => onTap(index),
       icon: Icon(icon, color: active ? T.volt : T.ink45, size: 26),
-    );
-  }
-}
-
-class _ProfilePlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final state = Store.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const H1('Perfil'),
-            const SizedBox(height: 20),
-            Glass(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Label('resumen'),
-                  const SizedBox(height: 8),
-                  Readout(moneyFull(Finance.workingBalance(state.accounts))),
-                  const SizedBox(height: 4),
-                  Text('Balance total en ${state.accounts.length} cuentas',
-                      style: const TextStyle(color: T.ink45, fontSize: 13)),
-                  const SizedBox(height: 16),
-                  KV('Transacciones', '${state.transactions.length}'),
-                  KV('Presupuesto mes', moneyFull(state.currentBudget().total)),
-                  KV('Gastos mes', moneyFull(state.monthExpenses()),
-                      color: T.clay),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

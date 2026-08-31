@@ -5,6 +5,7 @@ import '../models.dart';
 import '../services.dart';
 import '../state.dart';
 import '../widgets/budget_card.dart';
+import 'edit_budget.dart';
 
 class BudgetDetailScreen extends StatelessWidget {
   const BudgetDetailScreen({super.key});
@@ -34,6 +35,13 @@ class BudgetDetailScreen extends StatelessWidget {
           Row(
             children: [
               const Expanded(child: H1('Presupuesto')),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: T.ink45),
+                tooltip: 'Editar presupuesto',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const EditBudgetScreen()),
+                ),
+              ),
               _MonthChip(
                 label: _monthName(now.month),
                 onPrev: () => state.setFocusMonth(

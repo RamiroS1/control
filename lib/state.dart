@@ -22,7 +22,7 @@ class AppState extends ChangeNotifier {
     final acc = await storage.loadAccounts();
     final txs = await storage.loadTransactions();
     final bud = await storage.loadBudgets();
-  if (acc != null && txs != null) {
+    if (acc != null && txs != null) {
       accounts
         ..clear()
         ..addAll(acc);
@@ -34,15 +34,68 @@ class AppState extends ChangeNotifier {
           ..clear()
           ..addAll(bud);
       }
-    } else {
-      final now = DateTime.now();
-      accounts.addAll(Seed.accounts());
-      transactions.addAll(Seed.transactions(now));
-      budgets.add(Seed.budget(now));
-      await persist();
     }
     loaded = true;
     notifyListeners();
+  }
+
+  Future<void> loadDemoData() async {
+    final now = DateTime.now();
+    accounts
+      ..clear()
+      ..addAll(Seed.accounts());
+    transactions
+      ..clear()
+      ..addAll(Seed.transactions(now));
+    budgets
+      ..clear()
+      ..add(Seed.budget(now));
+    await persist();
+    notifyListeners();
+  }
+
+  Future<void> clearAll() async {
+    accounts.clear();
+    transactions.clear();
+    budgets.clear();
+    await storage.clearAll();
+    notifyListeners();
+  }
+
+  String exportJson() => DataPortability.encode(
+        accounts: accounts,
+        transactions: transactions,
+        budgets: budgets,
+      );
+
+  Future<void> importJson(String raw) async {
+    final data = DataPortability.decode(raw);
+    accounts
+      ..clear()
+      ..addAll(data.accounts);
+    transactions
+      ..clear()
+      ..addAll(data.transactions);
+    budgets
+      ..clear()
+      ..addAll(data.budgets);
+    await persist();
+    notifyListeners();
+  }
+
+  void addAccount(Account account) {
+    accounts.add(account);
+    persist();
+    notifyListeners();
+  }
+
+  void updateAccount(Account account) {
+    final i = accounts.indexWhere((a) => a.id == account.id);
+    if (i >= 0) {
+      accounts[i] = account;
+      persist();
+      notifyListeners();
+    }
   }
 
   Future<void> persist() async {
