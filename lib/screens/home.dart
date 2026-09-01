@@ -26,7 +26,14 @@ class HomeScreen extends StatelessWidget {
       today: today,
     );
     final incomeToday = Finance.incomeOnDay(state.transactions, today);
+    final todayNet = Finance.netOnDay(state.transactions, today);
     final balance = Finance.workingBalance(state.accounts);
+    final yesterdaySnap = state.yesterdaySnapshot();
+    final expectedFromYesterday = Finance.expectedBalanceFromSnapshot(
+      previousSnapshot: yesterdaySnap,
+      txs: state.transactions,
+      day: today,
+    );
     final byCat = Finance.byCategory(
       state.transactions,
       now.year,
@@ -51,14 +58,23 @@ class HomeScreen extends StatelessWidget {
             snapshots: state.balanceSnapshots,
             accounts: state.accounts,
             currentTotal: balance,
+            monthNet: flow.monthAvailable,
+            todayNet: todayNet,
+            expectedFromYesterday: expectedFromYesterday,
             onSaveToday: () async {
               if (state.accounts.isEmpty) return;
-              final note = await promptBalanceNote(context, balance);
-              if (note == null) return;
-              state.saveBalanceSnapshot(note: note.isEmpty ? null : note);
+              final result = await promptSaveBalance(
+                context,
+                accountsTotal: balance,
+                monthNet: flow.monthAvailable,
+                todayNet: todayNet,
+                expectedFromYesterday: expectedFromYesterday,
+              );
+              if (result == null) return;
+              state.saveBalanceSnapshot(note: result.note, total: result.total);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Saldo del dia guardado')),
+                  SnackBar(content: Text('Saldo guardado: ${moneyFull(result.total)}')),
                 );
               }
             },

@@ -252,4 +252,38 @@ void main() {
     expect(Finance.income(txs, 2026, 8), 29000);
     expect(Finance.income(txs, 2026, 9), 0);
   });
+
+  test('net on day and expected balance from snapshot', () {
+    final txs = [
+      Transaction(
+          id: '1',
+          accountId: 'a',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 15000,
+          date: DateTime(2026, 9, 1)),
+      Transaction(
+          id: '2',
+          accountId: 'a',
+          categoryId: 'comida',
+          type: TxType.expense,
+          amount: 12100,
+          date: DateTime(2026, 9, 1)),
+    ];
+    expect(Finance.netOnDay(txs, DateTime(2026, 9, 1)), 2900);
+    final snap = BalanceSnapshot(
+      id: 's1',
+      date: DateTime(2026, 8, 31),
+      total: 35000,
+      byAccount: {'a': 35000},
+    );
+    expect(
+      Finance.expectedBalanceFromSnapshot(
+        previousSnapshot: snap,
+        txs: txs,
+        day: DateTime(2026, 9, 1),
+      ),
+      37900,
+    );
+  });
 }

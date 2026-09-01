@@ -39,7 +39,7 @@ class DailySummaryCard extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: T.volt)),
               ),
               const Spacer(),
-              Text('Balance ${moneyFull(balanceTotal)}',
+              Text('En cuentas ${moneyFull(balanceTotal)}',
                   style: const TextStyle(fontSize: 11, color: T.ink45)),
             ],
           ),

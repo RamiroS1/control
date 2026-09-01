@@ -151,9 +151,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void saveBalanceSnapshot({String? note}) {
+  void saveBalanceSnapshot({String? note, double? total}) {
     final now = DateTime.now();
     final day = DateTime(now.year, now.month, now.day);
+    final accountTotal = Finance.workingBalance(accounts);
+    final target = total ?? accountTotal;
+    if ((target - accountTotal).abs() > 0.01) {
+      _syncAccountsToTotal(target);
+    }
     final byAccount = {for (final a in accounts) a.id: a.balance};
     balanceSnapshots.removeWhere((s) => Finance.sameDay(s.date, day));
     balanceSnapshots.insert(
@@ -161,13 +166,30 @@ class AppState extends ChangeNotifier {
       BalanceSnapshot(
         id: 'snap_${now.millisecondsSinceEpoch}',
         date: day,
-        total: Finance.workingBalance(accounts),
+        total: target,
         byAccount: byAccount,
         note: note,
       ),
     );
     persist();
     notifyListeners();
+  }
+
+  void _syncAccountsToTotal(double target) {
+    if (accounts.isEmpty) return;
+    final current = Finance.workingBalance(accounts);
+    if ((current - target).abs() < 0.01) return;
+    if (current == 0) {
+      accounts[0].balance = target;
+      return;
+    }
+    for (final a in accounts) {
+      a.balance = a.balance * target / current;
+    }
+    final drift = target - Finance.workingBalance(accounts);
+    if (drift.abs() > 0.01) {
+      accounts.last.balance += drift;
+    }
   }
 
   void restoreBalanceSnapshot(BalanceSnapshot snapshot) {
