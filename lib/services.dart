@@ -28,9 +28,7 @@ class Finance {
           .fold(0, (s, t) => s + t.amount);
 
   static double incomeOnDay(List<Transaction> txs, DateTime day) =>
-      forDay(txs, day)
-          .where((t) => t.type == TxType.income)
-          .fold(0, (s, t) => s + t.amount);
+      forDay(txs, day).where(isRealIncome).fold(0, (s, t) => s + t.amount);
 
   static Map<String, double> byCategoryForDay(
     List<Transaction> txs,
@@ -51,6 +49,9 @@ class Finance {
     return entries;
   }
 
+  static bool isRealIncome(Transaction t) =>
+      t.type == TxType.income && t.countsAsIncome;
+
   static double expenses(List<Transaction> txs, int year, int month) =>
       forMonth(txs, year, month)
           .where((t) => t.type == TxType.expense)
@@ -58,7 +59,7 @@ class Finance {
 
   static double income(List<Transaction> txs, int year, int month) =>
       forMonth(txs, year, month)
-          .where((t) => t.type == TxType.income)
+          .where(isRealIncome)
           .fold(0, (s, t) => s + t.amount);
 
   static double net(List<Transaction> txs, int year, int month) =>
@@ -71,7 +72,7 @@ class Finance {
     int month,
   ) =>
       forMonth(txs, year, month)
-          .where((t) => t.accountId == accountId && t.type == TxType.income)
+          .where((t) => t.accountId == accountId && isRealIncome(t))
           .fold(0, (s, t) => s + t.amount);
 
   static double accountExpenses(
@@ -183,6 +184,28 @@ class Finance {
     return plan.total;
   }
 
+  static BalanceSnapshot? latestSnapshotBefore(
+    List<BalanceSnapshot> snaps,
+    DateTime day,
+  ) {
+    BalanceSnapshot? best;
+    for (final s in snaps) {
+      if (!s.date.isBefore(day)) continue;
+      if (best == null || s.date.isAfter(best.date)) best = s;
+    }
+    return best;
+  }
+
+  static BalanceSnapshot? snapshotForDay(
+    List<BalanceSnapshot> snaps,
+    DateTime day,
+  ) {
+    for (final s in snaps) {
+      if (sameDay(s.date, day)) return s;
+    }
+    return null;
+  }
+
   static double workingBalance(List<Account> accounts) =>
       accounts.fold(0, (s, a) => s + a.balance);
 
@@ -253,6 +276,7 @@ class Storage {
   static const _accounts = 'control_accounts';
   static const _txs = 'control_transactions';
   static const _budgets = 'control_budgets';
+  static const _snapshots = 'control_balance_snapshots';
   static const _version = 'control_data_version';
 
   /// Limpia datos mock viejos guardados en el navegador al actualizar la app.
@@ -309,6 +333,20 @@ class Storage {
     await p.remove(_accounts);
     await p.remove(_txs);
     await p.remove(_budgets);
+    await p.remove(_snapshots);
+  }
+
+  Future<void> saveBalanceSnapshots(List<BalanceSnapshot> list) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_snapshots, jsonEncode(list.map((s) => s.toJson()).toList()));
+  }
+
+  Future<List<BalanceSnapshot>> loadBalanceSnapshots() async {
+    final p = await SharedPreferences.getInstance();
+    final raw = p.getString(_snapshots);
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List;
+    return list.map((j) => BalanceSnapshot.fromJson(j as Map<String, dynamic>)).toList();
   }
 }
 
@@ -321,30 +359,36 @@ class DataPortability {
     required List<Account> accounts,
     required List<Transaction> transactions,
     required List<BudgetPlan> budgets,
+    List<BalanceSnapshot> snapshots = const [],
   }) =>
       {
-        'version': 1,
+        'version': 2,
         'exportedAt': DateTime.now().toIso8601String(),
         'accounts': accounts.map((a) => a.toJson()).toList(),
         'transactions': transactions.map((t) => t.toJson()).toList(),
         'budgets': budgets.map((b) => b.toJson()).toList(),
+        if (snapshots.isNotEmpty)
+          'balanceSnapshots': snapshots.map((s) => s.toJson()).toList(),
       };
 
   static String encode({
     required List<Account> accounts,
     required List<Transaction> transactions,
     required List<BudgetPlan> budgets,
+    List<BalanceSnapshot> snapshots = const [],
   }) =>
       const JsonEncoder.withIndent('  ').convert(pack(
             accounts: accounts,
             transactions: transactions,
             budgets: budgets,
+            snapshots: snapshots,
           ));
 
   static ({
     List<Account> accounts,
     List<Transaction> transactions,
     List<BudgetPlan> budgets,
+    List<BalanceSnapshot> snapshots,
   }) decode(String raw) {
     final root = jsonDecode(raw) as Map<String, dynamic>;
     final acc = (root['accounts'] as List)
@@ -356,7 +400,13 @@ class DataPortability {
     final bud = (root['budgets'] as List)
         .map((j) => BudgetPlan.fromJson(j as Map<String, dynamic>))
         .toList();
-    return (accounts: acc, transactions: txs, budgets: bud);
+    final snapsRaw = root['balanceSnapshots'] as List?;
+    final snaps = snapsRaw == null
+        ? <BalanceSnapshot>[]
+        : snapsRaw
+            .map((j) => BalanceSnapshot.fromJson(j as Map<String, dynamic>))
+            .toList();
+    return (accounts: acc, transactions: txs, budgets: bud, snapshots: snaps);
   }
 }
 

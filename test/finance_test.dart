@@ -230,4 +230,26 @@ void main() {
     expect(Finance.accountExpenses(txs, 'acc1', 2026, 8), 40);
     expect(Finance.accountExpenses(txs, 'acc2', 2026, 8), 10);
   });
+
+  test('carry over income excluded from totals', () {
+    final txs = [
+      Transaction(
+          id: '1',
+          accountId: 'a',
+          categoryId: 'ingresos',
+          type: TxType.income,
+          amount: 29000,
+          date: DateTime(2026, 8, 31)),
+      Transaction(
+          id: '2',
+          accountId: 'a',
+          categoryId: 'saldo_guardado',
+          type: TxType.income,
+          amount: 15000,
+          date: DateTime(2026, 9, 1),
+          countsAsIncome: false),
+    ];
+    expect(Finance.income(txs, 2026, 8), 29000);
+    expect(Finance.income(txs, 2026, 9), 0);
+  });
 }

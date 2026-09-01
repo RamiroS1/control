@@ -11,7 +11,9 @@ class TxRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cat = CategoryDef.byId(tx.categoryId);
     final isExp = tx.type == TxType.expense;
+    final isBalanceNote = tx.isBalanceNote;
     final dateLabel = _formatDate(tx.date);
+    final typeLabel = isExp ? 'Gasto' : (isBalanceNote ? 'Saldo guardado' : 'Entrada');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -38,7 +40,7 @@ class TxRow extends StatelessWidget {
                     [
                       if (tx.note != null && tx.note!.isNotEmpty) tx.note!,
                       dateLabel,
-                      isExp ? 'Gasto' : 'Entrada',
+                      typeLabel,
                     ].join(' · '),
                     style: const TextStyle(fontSize: 11, color: T.ink45),
                   ),
@@ -46,11 +48,13 @@ class TxRow extends StatelessWidget {
               ),
             ),
             Text(
-              '${isExp ? '-' : '+'}${moneyFull(tx.amount)}',
+              isBalanceNote
+                  ? moneyFull(tx.amount)
+                  : '${isExp ? '-' : '+'}${moneyFull(tx.amount)}',
               style: TextStyle(
                 fontFamily: T.mono,
                 fontWeight: FontWeight.w700,
-                color: isExp ? T.clay : T.go,
+                color: isBalanceNote ? T.iris : (isExp ? T.clay : T.go),
               ),
             ),
           ],

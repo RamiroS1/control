@@ -5,6 +5,7 @@ import '../models.dart';
 import '../services.dart';
 import '../state.dart';
 import '../widgets/accounts_breakdown.dart';
+import '../widgets/balance_reminder_card.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/flow_cards.dart';
 import '../widgets/tx_row.dart';
@@ -44,6 +45,31 @@ class HomeScreen extends StatelessWidget {
             flow: flow,
             incomeToday: incomeToday,
             balanceTotal: balance,
+          ),
+          const SizedBox(height: 16),
+          BalanceReminderCard(
+            snapshots: state.balanceSnapshots,
+            accounts: state.accounts,
+            currentTotal: balance,
+            onSaveToday: () async {
+              if (state.accounts.isEmpty) return;
+              final note = await promptBalanceNote(context, balance);
+              if (note == null) return;
+              state.saveBalanceSnapshot(note: note.isEmpty ? null : note);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Saldo del dia guardado')),
+                );
+              }
+            },
+            onRestoreYesterday: () {
+              final snap = state.yesterdaySnapshot();
+              if (snap == null) return;
+              state.restoreBalanceSnapshot(snap);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Saldo restaurado: ${moneyFull(snap.total)}')),
+              );
+            },
           ),
           const SizedBox(height: 16),
           MonthFlowCard(

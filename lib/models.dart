@@ -66,6 +66,13 @@ class CategoryDef {
     color: Color(0xFF00C9A7),
     incomeOnly: true,
   );
+  static const saldoGuardado = CategoryDef(
+    id: 'saldo_guardado',
+    name: 'Saldo que ya tenia',
+    icon: Icons.bookmark_outline,
+    color: Color(0xFF5C6BC0),
+    incomeOnly: true,
+  );
   static const otros = CategoryDef(
     id: 'otros',
     name: 'Otros',
@@ -82,6 +89,7 @@ class CategoryDef {
     deudas,
     ahorros,
     ingresos,
+    saldoGuardado,
     otros,
   ];
 
@@ -201,6 +209,8 @@ class Transaction {
   double amount;
   DateTime date;
   String? note;
+  /// false = nota de saldo arrastrado; no suma a ingresos ni al balance.
+  bool countsAsIncome;
 
   Transaction({
     required this.id,
@@ -210,7 +220,10 @@ class Transaction {
     required this.amount,
     required this.date,
     this.note,
+    this.countsAsIncome = true,
   });
+
+  bool get isBalanceNote => type == TxType.income && !countsAsIncome;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -220,6 +233,7 @@ class Transaction {
         'amount': amount,
         'date': date.toIso8601String(),
         'note': note,
+        if (!countsAsIncome) 'countsAsIncome': countsAsIncome,
       };
 
   factory Transaction.fromJson(Map<String, dynamic> j) => Transaction(
@@ -229,6 +243,40 @@ class Transaction {
         type: TxType.values.byName(j['type'] as String),
         amount: (j['amount'] as num).toDouble(),
         date: DateTime.parse(j['date'] as String),
+        note: j['note'] as String?,
+        countsAsIncome: j['countsAsIncome'] as bool? ?? true,
+      );
+}
+
+class BalanceSnapshot {
+  String id;
+  DateTime date;
+  double total;
+  Map<String, double> byAccount;
+  String? note;
+
+  BalanceSnapshot({
+    required this.id,
+    required this.date,
+    required this.total,
+    required this.byAccount,
+    this.note,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'total': total,
+        'byAccount': byAccount,
+        if (note != null) 'note': note,
+      };
+
+  factory BalanceSnapshot.fromJson(Map<String, dynamic> j) => BalanceSnapshot(
+        id: j['id'] as String,
+        date: DateTime.parse(j['date'] as String),
+        total: (j['total'] as num).toDouble(),
+        byAccount: (j['byAccount'] as Map<String, dynamic>)
+            .map((k, v) => MapEntry(k, (v as num).toDouble())),
         note: j['note'] as String?,
       );
 }

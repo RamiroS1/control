@@ -8,6 +8,7 @@ class AppState extends ChangeNotifier {
   final List<Account> accounts = [];
   final List<Transaction> transactions = [];
   final List<BudgetPlan> budgets = [];
+  final List<BalanceSnapshot> balanceSnapshots = [];
   DateTime focusMonth = DateTime.now();
   bool loaded = false;
 
@@ -23,6 +24,7 @@ class AppState extends ChangeNotifier {
     final acc = await storage.loadAccounts();
     final txs = await storage.loadTransactions();
     final bud = await storage.loadBudgets();
+    final snaps = await storage.loadBalanceSnapshots();
     if (acc != null && txs != null) {
       accounts
         ..clear()
@@ -35,6 +37,9 @@ class AppState extends ChangeNotifier {
           ..clear()
           ..addAll(bud);
       }
+      balanceSnapshots
+        ..clear()
+        ..addAll(snaps);
     }
     loaded = true;
     notifyListeners();
@@ -59,6 +64,7 @@ class AppState extends ChangeNotifier {
     accounts.clear();
     transactions.clear();
     budgets.clear();
+    balanceSnapshots.clear();
     await storage.clearAll();
     notifyListeners();
   }
@@ -67,6 +73,7 @@ class AppState extends ChangeNotifier {
         accounts: accounts,
         transactions: transactions,
         budgets: budgets,
+        snapshots: balanceSnapshots,
       );
 
   Future<void> importJson(String raw) async {
@@ -80,6 +87,9 @@ class AppState extends ChangeNotifier {
     budgets
       ..clear()
       ..addAll(data.budgets);
+    balanceSnapshots
+      ..clear()
+      ..addAll(data.snapshots);
     await persist();
     notifyListeners();
   }
@@ -117,6 +127,7 @@ class AppState extends ChangeNotifier {
     await storage.saveAccounts(accounts);
     await storage.saveTransactions(transactions);
     await storage.saveBudgets(budgets);
+    await storage.saveBalanceSnapshots(balanceSnapshots);
   }
 
   void setFocusMonth(DateTime d) {
@@ -133,11 +144,45 @@ class AppState extends ChangeNotifier {
     final acc = accounts[accIndex];
     if (t.type == TxType.expense) {
       acc.balance -= t.amount;
-    } else {
+    } else if (t.countsAsIncome) {
       acc.balance += t.amount;
     }
     persist();
     notifyListeners();
+  }
+
+  void saveBalanceSnapshot({String? note}) {
+    final now = DateTime.now();
+    final day = DateTime(now.year, now.month, now.day);
+    final byAccount = {for (final a in accounts) a.id: a.balance};
+    balanceSnapshots.removeWhere((s) => Finance.sameDay(s.date, day));
+    balanceSnapshots.insert(
+      0,
+      BalanceSnapshot(
+        id: 'snap_${now.millisecondsSinceEpoch}',
+        date: day,
+        total: Finance.workingBalance(accounts),
+        byAccount: byAccount,
+        note: note,
+      ),
+    );
+    persist();
+    notifyListeners();
+  }
+
+  void restoreBalanceSnapshot(BalanceSnapshot snapshot) {
+    for (final entry in snapshot.byAccount.entries) {
+      final i = accounts.indexWhere((a) => a.id == entry.key);
+      if (i >= 0) accounts[i].balance = entry.value;
+    }
+    persist();
+    notifyListeners();
+  }
+
+  BalanceSnapshot? yesterdaySnapshot() {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    return Finance.latestSnapshotBefore(balanceSnapshots, todayStart);
   }
 
   void updateBudget(BudgetPlan plan) {

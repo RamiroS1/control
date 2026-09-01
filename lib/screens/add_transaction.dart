@@ -24,6 +24,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   String _accountId = '';
   DateTime _date = DateTime.now();
   bool _accountInit = false;
+  bool _isCarryOver = false;
 
   TxType get _type => _tabs.index == 0 ? TxType.income : TxType.expense;
 
@@ -107,15 +108,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
     final state = Store.of(context);
 
     try {
+      final isCarryOver = type == TxType.income && _isCarryOver;
       state.addTransaction(Transaction(
         id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
         accountId: _accountId,
-        categoryId: categoryId,
+        categoryId: isCarryOver ? CategoryDef.saldoGuardado.id : categoryId,
         type: type,
         amount: amount,
         date: DateTime(_date.year, _date.month, _date.day),
-        note: note.isEmpty ? null : note,
+        note: note.isEmpty
+            ? (isCarryOver ? 'Saldo que ya tenia — no es ingreso nuevo' : null)
+            : note,
+        countsAsIncome: !isCarryOver,
       ));
+      if (isCarryOver) {
+        _toast('Nota guardada. No suma a ingresos ni al balance.');
+      }
       Navigator.of(context).pop();
     } catch (_) {
       _toast('No se pudo guardar. Revisa la cuenta seleccionada.');
@@ -147,7 +155,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
   @override
   Widget build(BuildContext context) {
     final state = Store.of(context);
-    final incomeCats = CategoryDef.forType(TxType.income);
+    final incomeCats = CategoryDef.forType(TxType.income)
+        .where((c) => c.id != CategoryDef.saldoGuardado.id)
+        .toList();
     final expenseCats = CategoryDef.forType(TxType.expense);
     final activeCats = _type == TxType.income ? incomeCats : expenseCats;
 
@@ -190,6 +200,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen>
               accountId: _accountId,
               dateLabel: _dateLabel(),
               categories: incomeCats,
+              isCarryOver: _isCarryOver,
+              onCarryOverChanged: (v) => setState(() {
+                _isCarryOver = v;
+                if (v) {
+                  _categoryId = CategoryDef.saldoGuardado.id;
+                  if (_noteCtrl.text == 'Diario') {
+                    _noteCtrl.text = 'Saldo que ya tenia';
+                  }
+                } else {
+                  _categoryId = CategoryDef.ingresos.id;
+                }
+              }),
               onCategoryChanged: (id) => setState(() => _categoryId = id),
               onAccountChanged: (id) => setState(() => _accountId = id),
               onPickDate: _pickDate,
@@ -225,6 +247,8 @@ class _FormBody extends StatelessWidget {
   final String accountId;
   final String dateLabel;
   final List<CategoryDef> categories;
+  final bool isCarryOver;
+  final ValueChanged<bool>? onCarryOverChanged;
   final ValueChanged<String> onCategoryChanged;
   final ValueChanged<String> onAccountChanged;
   final VoidCallback onPickDate;
@@ -239,6 +263,8 @@ class _FormBody extends StatelessWidget {
     required this.accountId,
     required this.dateLabel,
     required this.categories,
+    this.isCarryOver = false,
+    this.onCarryOverChanged,
     required this.onCategoryChanged,
     required this.onAccountChanged,
     required this.onPickDate,
@@ -270,6 +296,25 @@ class _FormBody extends StatelessWidget {
               ),
             ),
           ),
+          if (isIncome && onCarryOverChanged != null) ...[
+            const SizedBox(height: 12),
+            Glass(
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Es saldo que ya tenia',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'No suma a ingresos ni cambia el balance. Solo queda como recordatorio.',
+                  style: TextStyle(fontSize: 11, color: T.ink45),
+                ),
+                value: isCarryOver,
+                activeColor: T.volt,
+                onChanged: onCarryOverChanged,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           const Label('cuenta'),
           const SizedBox(height: 8),
@@ -279,14 +324,16 @@ class _FormBody extends StatelessWidget {
             onChanged: onAccountChanged,
           ),
           const SizedBox(height: 16),
-          const Label('categoria'),
-          const SizedBox(height: 8),
-          _CategoryDropdown(
-            categories: categories,
-            categoryId: categoryId,
-            onChanged: onCategoryChanged,
-          ),
-          const SizedBox(height: 16),
+          if (!isCarryOver) ...[
+            const Label('categoria'),
+            const SizedBox(height: 8),
+            _CategoryDropdown(
+              categories: categories,
+              categoryId: categoryId,
+              onChanged: onCategoryChanged,
+            ),
+            const SizedBox(height: 16),
+          ],
           const Label('fecha'),
           const SizedBox(height: 8),
           Glass(
@@ -326,7 +373,9 @@ class _FormBody extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Primary(
-            label: isIncome ? 'Guardar entrada' : 'Guardar gasto',
+            label: isIncome
+                ? (isCarryOver ? 'Guardar nota de saldo' : 'Guardar entrada')
+                : 'Guardar gasto',
             onTap: onSave,
           ),
         ],
