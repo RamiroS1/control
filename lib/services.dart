@@ -30,6 +30,19 @@ class Finance {
   static double incomeOnDay(List<Transaction> txs, DateTime day) =>
       forDay(txs, day).where(isRealIncome).fold(0, (s, t) => s + t.amount);
 
+  static double netOnDay(List<Transaction> txs, DateTime day) =>
+      incomeOnDay(txs, day) - expensesOnDay(txs, day);
+
+  /// Saldo esperado si partimos del guardado de ayer + movimientos reales de hoy.
+  static double? expectedBalanceFromSnapshot({
+    required BalanceSnapshot? previousSnapshot,
+    required List<Transaction> txs,
+    required DateTime day,
+  }) {
+    if (previousSnapshot == null) return null;
+    return previousSnapshot.total + netOnDay(txs, day);
+  }
+
   static Map<String, double> byCategoryForDay(
     List<Transaction> txs,
     DateTime day, {
